@@ -1,0 +1,48 @@
+# Node / Dependencies
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+package-lock.json # If using yarn.lock
+yarn.lock # If using package-lock.json
+
+# Build Output
+dist/
+*.zip
+
+# Environment Variables
+.env
+.env.*
+!.env.example # Keep example file
+
+# Logs
+logs/
+*.log
+
+# OS generated files
+.DS_Store
+Thumbs.db
+
+# IDE / Editor directories
+.idea/
+.vscode/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Terraform state files
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfvars
+# Optionally exclude plan files if you generate them locally
+# *.tfplan
+
+# Test Output / Coverage
+coverage/
+junit.xml
+
+# Other
+*.pem # Private keys

@@ -1,0 +1,64 @@
+service: avax-rpc-balancer
+
+frameworkVersion: "3" # Use Serverless Framework v3
+
+provider:
+  name: aws
+  runtime: nodejs18.x # Match your Lambda runtime and tsconfig target
+  stage: ${opt:stage, 'dev'} # Default stage is 'dev'
+  region: ${env:AWS_REGION, 'us-east-1'} # Use AWS_REGION from .env or default
+  environment: # Environment variables passed to deployed Lambda
+    NODE_URLS: ${env:NODE_URLS} # Example: Get production URLs from env/secrets
+    LOG_LEVEL: ${env:LOG_LEVEL, 'INFO'}
+
+plugins: [
+    serverless-plugin-typescript, # Handles TypeScript compilation during deployment
+    serverless-offline, # Enables local running
+    serverless-dotenv-plugin, # Loads .env variables locally
+  ]
+
+custom:
+  dotenv:
+    path: .env # Path to your environment file for local development
+  serverless-offline:
+    httpPort: 3000 # Port for the local server
+    # Optional: Use --noPrependStageInUrl for simpler localhost:3000/ path
+    noPrependStageInUrl: true
+    # Use docker network if serverless-offline needs to reach docker containers directly
+    # dockerNetwork: "avax-rpc-balancer_local-balancer-net" # Network name from docker-compose
+
+package:
+  individually: true # Package functions separately
+  patterns: # Define what to include/exclude in the deployment package
+    - "!./**" # Exclude everything by default
+    - "./dist/lambda/router/**" # Include router code
+    - "./dist/config/**"
+    - "./dist/services/**"
+    - "./dist/utils/**"
+    # Exclude tests, source maps etc from deployed package
+    - "!./**/*.test.js"
+    - "!./**/*.map"
+
+functions:
+  router: # Logical name for the router function
+    handler: src/lambda/router/handler.handleRpcRequest # Path to handler file and exported function
+    package:
+      patterns: # Specify includes for THIS function
+        - "./dist/lambda/router/**"
+        - "./dist/config/**"
+        - "./dist/services/**"
+        - "./dist/utils/**"
+    events: # Trigger for this function
+      - httpApi: # Using HTTP API (cheaper, simpler than REST API)
+          path: / # Trigger on requests to the root path
+          method: post
+  # Define the health check Lambda here too if deploying via Serverless Framework
+  # healthChecker:
+  #   handler: src/lambda/health/index.monitorNodeHealth
+  #   package:
+  #     patterns:
+  #       - './dist/lambda/health/**'
+  #       - './dist/config/**'
+  #       # Include other needed shared code
+  #   events:
+  #     - schedule: rate(1 minute) # Example schedule

@@ -1,0 +1,25 @@
+version: '3.8'
+
+services:
+  nginx:
+    container_name: avax-rpc-balancer-nginx
+    build:
+      context: ../nginx # Path to the directory containing the Dockerfile
+      dockerfile: Dockerfile
+    ports:
+      - "8080:80" # Map host port 8080 to container port 80
+      # - "8443:443" # Map for HTTPS if configured in Nginx
+    volumes:
+      # Mount Nginx config for easier local changes (optional)
+      - ../nginx/conf.d:/etc/nginx/conf.d:ro
+      # Mount certs if doing local HTTPS
+      # - ../nginx/certs:/etc/nginx/certs:ro
+    restart: unless-stopped
+
+  # Optional: Add other services needed for local dev
+  # e.g., a local DynamoDB container, Redis for caching,
+  # or a Lambda emulator setup.
+
+# Optional: Define volumes if needed
+# volumes:
+#   certs:

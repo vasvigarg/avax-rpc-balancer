@@ -1,0 +1,43 @@
+name: Run Tests
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        node-version: [18.x] # Use Node.js version matching Lambda runtime
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Set up Node.js ${{ matrix.node-version }}
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ matrix.node-version }}
+        cache: 'npm' # Or 'yarn'
+
+    - name: Install dependencies
+      run: npm install # Or yarn install
+
+    - name: Run Linter
+      run: npm run lint
+
+    # Optional: Run Formatter Check
+    # - name: Check Formatting
+    #   run: npm run format -- --check
+
+    - name: Build TypeScript
+      run: npm run build
+
+    - name: Run Unit Tests
+      run: npm test
+      # env: # Add env vars needed for tests if any
+      #   AWS_REGION: us-east-1
