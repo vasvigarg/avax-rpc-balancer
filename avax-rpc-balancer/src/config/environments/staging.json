@@ -1,0 +1,49 @@
+{
+    "aws": {
+      "region": "us-east-1",
+      "lambdaName": "avax-rpc-balancer-router-staging"
+    },
+    "blockchain": {
+      "networks": {
+        "avalanche": {
+          "mainnet": [
+            {"url": "https://staging-avalanche-mainnet1.example.com", "weight": 3, "provider": "internal"},
+            {"url": "https://staging-avalanche-mainnet2.example.com", "weight": 2, "provider": "infura"},
+            {"url": "https://staging-avalanche-mainnet3.example.com", "weight": 2, "provider": "ankr"}
+          ],
+          "testnet": [
+            {"url": "https://staging-avalanche-testnet1.example.com", "weight": 3, "provider": "internal"},
+            {"url": "https://staging-avalanche-testnet2.example.com", "weight": 1, "provider": "ankr"}
+          ]
+        },
+        "ethereum": {
+          "mainnet": [
+            {"url": "https://staging-ethereum-mainnet1.example.com", "weight": 2, "provider": "infura"},
+            {"url": "https://staging-ethereum-mainnet2.example.com", "weight": 2, "provider": "alchemy"}
+          ]
+        }
+      }
+    },
+    "cache": {
+      "ttl": 45,
+      "enabled": true,
+      "redisUrl": "redis://redis-staging.internal:6379",
+      "methodTTL": {
+        "eth_getBalance": 90,
+        "eth_blockNumber": 15,
+        "default": 45
+      }
+    },
+    "logging": {
+      "level": "info",
+      "destination": "cloudwatch"
+    },
+    "metrics": {
+      "enabled": true,
+      "interval": 30
+    },
+    "rateLimit": {
+      "enabled": true,
+      "requestsPerMinute": 300
+    }
+  }

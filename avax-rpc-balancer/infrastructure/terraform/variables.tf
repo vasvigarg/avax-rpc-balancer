@@ -53,4 +53,10 @@ variable "node_urls_env_var" {
   default     = ""     // Example: "http://node1...,http://node2..."
 }
 
-# Add more variables as needed (e.g., DynamoDB table name for health state)
+variable "environment" {
+  description = "Deployment environment"
+  type        = string
+  default     = "dev"
+}
+
+# Add other variables

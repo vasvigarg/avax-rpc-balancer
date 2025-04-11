@@ -1,0 +1,48 @@
+{
+    "aws": {
+      "region": "us-east-1",
+      "lambdaName": "avax-rpc-balancer-router-dev"
+    },
+    "blockchain": {
+      "networks": {
+        "avalanche": {
+          "mainnet": [
+            {"url": "https://dev-avalanche-mainnet1.example.com", "weight": 3, "provider": "internal"},
+            {"url": "https://dev-avalanche-mainnet2.example.com", "weight": 2, "provider": "infura"}
+          ],
+          "testnet": [
+            {"url": "https://dev-avalanche-testnet1.example.com", "weight": 3, "provider": "internal"},
+            {"url": "https://dev-avalanche-testnet2.example.com", "weight": 1, "provider": "ankr"}
+          ]
+        },
+        "ethereum": {
+          "mainnet": [
+            {"url": "https://dev-ethereum-mainnet1.example.com", "weight": 2, "provider": "infura"},
+            {"url": "https://dev-ethereum-mainnet2.example.com", "weight": 1, "provider": "alchemy"}
+          ]
+        }
+      }
+    },
+    "cache": {
+      "ttl": 30,
+      "enabled": true,
+      "redisUrl": "redis://localhost:6379",
+      "methodTTL": {
+        "eth_getBalance": 60,
+        "eth_blockNumber": 10,
+        "default": 30
+      }
+    },
+    "logging": {
+      "level": "debug",
+      "destination": "console"
+    },
+    "metrics": {
+      "enabled": true,
+      "interval": 60
+    },
+    "rateLimit": {
+      "enabled": false,
+      "requestsPerMinute": 100
+    }
+  }

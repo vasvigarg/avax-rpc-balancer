@@ -1,0 +1,51 @@
+{
+    "aws": {
+      "region": "us-east-1",
+      "lambdaName": "avax-rpc-balancer-router-prod"
+    },
+    "blockchain": {
+      "networks": {
+        "avalanche": {
+          "mainnet": [
+            {"url": "https://prod-avalanche-mainnet1.example.com", "weight": 5, "provider": "internal"},
+            {"url": "https://prod-avalanche-mainnet2.example.com", "weight": 3, "provider": "infura"},
+            {"url": "https://prod-avalanche-mainnet3.example.com", "weight": 3, "provider": "ankr"},
+            {"url": "https://prod-avalanche-mainnet4.example.com", "weight": 2, "provider": "alchemy"}
+          ],
+          "testnet": [
+            {"url": "https://prod-avalanche-testnet1.example.com", "weight": 3, "provider": "internal"},
+            {"url": "https://prod-avalanche-testnet2.example.com", "weight": 2, "provider": "ankr"}
+          ]
+        },
+        "ethereum": {
+          "mainnet": [
+            {"url": "https://prod-ethereum-mainnet1.example.com", "weight": 5, "provider": "infura"},
+            {"url": "https://prod-ethereum-mainnet2.example.com", "weight": 4, "provider": "alchemy"},
+            {"url": "https://prod-ethereum-mainnet3.example.com", "weight": 3, "provider": "quicknode"}
+          ]
+        }
+      }
+    },
+    "cache": {
+      "ttl": 60,
+      "enabled": true,
+      "redisUrl": "redis://redis-cluster.prod.internal:6379",
+      "methodTTL": {
+        "eth_getBalance": 120,
+        "eth_blockNumber": 20,
+        "default": 60
+      }
+    },
+    "logging": {
+      "level": "warn",
+      "destination": "cloudwatch"
+    },
+    "metrics": {
+      "enabled": true,
+      "interval": 15
+    },
+    "rateLimit": {
+      "enabled": true,
+      "requestsPerMinute": 1000
+    }
+  }

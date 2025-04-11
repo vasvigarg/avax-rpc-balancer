@@ -1,20 +1,33 @@
 {
-    "compilerOptions": {
-      "target": "ES2020", // Target Node.js 18+ runtime on Lambda
-      "module": "CommonJS", // Standard for Node.js Lambdas
-      "lib": ["ES2020"],
-      "outDir": "./dist", // Output directory for compiled JS
-      "rootDir": "./src", // Root directory of source files
-      "strict": true,
-      "types": ["node", "aws-lambda"],
-      "esModuleInterop": true,
-      "skipLibCheck": true,
-      "forceConsistentCasingInFileNames": true,
-      "resolveJsonModule": true,
-      "sourceMap": true, // Generate source maps for easier debugging
-      "moduleResolution": "node",
-      "declaration": true // Generate .d.ts files (optional)
-    },
-    "include": ["src/**/*.ts"], // Files to include in compilation
-    "exclude": ["node_modules", "**/*.test.ts", "dist"] // Files to exclude
-  }
+  "compilerOptions": {
+    "target": "ES2020",
+    "module": "commonjs",
+    "lib": ["ES2020"],
+    "declaration": true,
+    "strict": true,
+    "noImplicitAny": true,
+    "strictNullChecks": true,
+    "noImplicitThis": true,
+    "alwaysStrict": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noImplicitReturns": true,
+    "noFallthroughCasesInSwitch": true,
+    "inlineSourceMap": true,
+    "inlineSources": true,
+    "experimentalDecorators": true,
+    "strictPropertyInitialization": true,
+    "resolveJsonModule": true,
+    "esModuleInterop": true,
+    "outDir": "dist",
+    "baseUrl": ".",
+    "paths": {
+      "@src/*": ["src/*"],
+      "@config/*": ["src/config/*"],
+      "@services/*": ["src/services/*"],
+      "@utils/*": ["src/utils/*"]
+    }
+  },
+  "exclude": ["node_modules", "dist", "tests/**/*.spec.ts"],
+  "include": ["src/**/*.ts", "tests/**/*.ts"]
+}

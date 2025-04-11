@@ -1,18 +1,18 @@
-# Use the official stable Nginx image from Docker Hub
-FROM nginx:stable-alpine
+# Dockerfile
+FROM node:18-alpine AS builder
 
-# Remove default Nginx config
-RUN rm /etc/nginx/conf.d/default.conf
+WORKDIR /app
+COPY package*.json ./
+RUN npm ci
+COPY . .
+RUN npm run build
 
-# Copy our custom Nginx configuration
-COPY conf.d/default.conf /etc/nginx/conf.d/default.conf
+FROM node:18-alpine
 
-# Optional: If you have static content or other configs, copy them too
-# COPY html /usr/share/nginx/html
+WORKDIR /app
+COPY --from=builder /app/dist ./dist
+COPY --from=builder /app/package*.json ./
+RUN npm ci --production
 
-# Expose port 80 (and 443 if you configure SSL within the container)
-EXPOSE 80
-# EXPOSE 443
-
-# The default Nginx entrypoint starts Nginx in the foreground
-# CMD ["nginx", "-g", "daemon off;"] (This is the default, usually no need to specify)
+EXPOSE 3000
+CMD ["node", "dist/src/lambda/router/index.js"]

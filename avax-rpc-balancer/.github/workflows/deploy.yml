@@ -1,0 +1,112 @@
+name: Deploy
+
+on:
+  push:
+    branches: [ main, develop ]
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to deploy to'
+        required: true
+        default: 'dev'
+        type: choice
+        options:
+          - dev
+          - staging
+          - prod
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: ${{ github.event.inputs.environment || (github.ref == 'refs/heads/main' && 'prod' || 'dev') }}
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Set up Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '18'
+        cache: 'npm'
+    
+    - name: Install dependencies
+      run: npm ci
+    
+    - name: Build
+      run: npm run build
+    
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v2
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: ${{ secrets.AWS_REGION }}
+    
+    - name: Deploy to AWS
+      run: npm run deploy -- --env=${{ github.event.inputs.environment || (github.ref == 'refs/heads/main' && 'prod' || 'dev') }}
+      env:
+        NODE_ENV: ${{ github.event.inputs.environment || (github.ref == 'refs/heads/main' && 'prod' || 'dev') }}
+    
+    - name: Terraform Init
+      run: terraform -chdir=infrastructure/terraform init
+
+    - name: Terraform Plan
+      run: |
+        terraform -chdir=infrastructure/terraform plan \  
+        -var-file=environments/${{ github.event.inputs.environment || (github.ref == 'refs/heads/main' && 'prod' || 'dev') }}.tfvars \
+        -out=tfplan
+
+    - name: Terraform Apply
+      run: terraform -chdir=infrastructure/terraform apply -auto-approve tfplan
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v2
+      
+    - name: Login to Docker Registry
+      uses: docker/login-action@v2
+      with:
+        registry: ${{ secrets.DOCKER_REGISTRY }}
+        username: ${{ secrets.DOCKER_USERNAME }}
+        password: ${{ secrets.DOCKER_PASSWORD }}
+      
+    - name: Build and push Docker image
+      uses: docker/build-push-action@v4
+      with:
+        context: .
+        push: true
+        tags: ${{ secrets.DOCKER_REGISTRY }}/avax-rpc-balancer:${{ github.sha }},${{ secrets.DOCKER_REGISTRY }}/avax-rpc-balancer:${{ github.event.inputs.environment || (github.ref == 'refs/heads/main' && 'prod' || 'dev') }}
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+    - name: Determine version bump type
+      id: bump
+      run: |
+        if [[ "${{ github.event.head_commit.message }}" == *"#major"* ]]; then
+          echo "type=major" >> $GITHUB_OUTPUT
+        elif [[ "${{ github.event.head_commit.message }}" == *"#minor"* ]]; then
+          echo "type=minor" >> $GITHUB_OUTPUT
+        else
+          echo "type=patch" >> $GITHUB_OUTPUT
+        fi
+      
+    - name: Bump version
+      if: github.ref == 'refs/heads/main'
+      run: |
+        node scripts/bump-version.js ${{ steps.bump.outputs.type }}
+          
+    - name: Commit version bump
+      if: github.ref == 'refs/heads/main'
+      uses: stefanzweifel/git-auto-commit-action@v4
+      with:
+        commit_message: "chore: bump version to ${{ steps.bump.outputs.version }}"
+        file_pattern: "version.json package.json"
+          
+    - name: Create Release
+      if: github.ref == 'refs/heads/main'
+      uses: actions/create-release@v1
+      env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: v${{ steps.bump.outputs.version }}
+        release_name: Release v${{ steps.bump.outputs.version }}
+        draft: false
+        prerelease: false
