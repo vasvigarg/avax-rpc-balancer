@@ -1,4 +1,8 @@
 import axios from 'axios';
+import { recordSuccessfulRequest, recordFailedRequest } from './loadBalancer';
+import { logger } from '../utils/logger';
+
+const log = logger.withContext({ service: 'rpc-handler' });
 
 // Define the types that are missing from axios import
 type AxiosError = {
@@ -36,6 +40,7 @@ interface ProxyOptions {
     retryDelay?: number;
     headers?: Record<string, string>;
     validateRequest?: boolean;
+    nodeId?: string; // Added nodeId to track which node we're using
 }
 
 const DEFAULT_OPTIONS: ProxyOptions = {
@@ -76,12 +81,13 @@ export async function proxyRequest(
 ): Promise<RpcResponse | RpcResponse[]> {
     const opts = { ...DEFAULT_OPTIONS, ...options };
     const isBatch = Array.isArray(requestPayload);
+    const nodeId = opts.nodeId;
     
     // Log the incoming request
     if (isBatch) {
-        console.log(`Proxying batch request with ${requestPayload.length} operations to ${targetUrl}`);
+        log.info(`Proxying batch request with ${requestPayload.length} operations to ${targetUrl}${nodeId ? ` (Node: ${nodeId})` : ''}`);
     } else {
-        console.log(`Proxying request ID ${requestPayload.id} (${requestPayload.method}) to ${targetUrl}`);
+        log.info(`Proxying request ID ${requestPayload.id} (${requestPayload.method}) to ${targetUrl}${nodeId ? ` (Node: ${nodeId})` : ''}`);
     }
     
     // Validate the request if required
@@ -94,7 +100,7 @@ export async function proxyRequest(
             }
         } catch (error) {
             const errorMessage = error instanceof Error ? error.message : 'Unknown validation error';
-            console.error(`Invalid JSON-RPC request: ${errorMessage}`);
+            log.error(`Invalid JSON-RPC request: ${errorMessage}`);
             const errorResponse = createErrorResponse(
                 isBatch ? requestPayload.map(r => r.id) : requestPayload.id,
                 -32600,
@@ -120,19 +126,21 @@ export async function proxyRequest(
         requestPayload,
         opts.retries || 0,
         opts.retryDelay || 0,
-        targetUrl
+        targetUrl,
+        nodeId
     );
 }
 
 /**
- * Execute the request with retry logic
+ * Execute the request with retry logic and circuit breaker integration
  */
 async function executeWithRetry(
     fn: () => Promise<any>,
     requestPayload: RpcRequest | RpcRequest[],
     retries: number,
     retryDelay: number,
-    targetUrl: string
+    targetUrl: string,
+    nodeId?: string
 ): Promise<RpcResponse | RpcResponse[]> {
     const isBatch = Array.isArray(requestPayload);
     const requestId = isBatch ? 'batch' : (requestPayload as RpcRequest).id;
@@ -143,18 +151,29 @@ async function executeWithRetry(
             const response = await fn() as any;
             
             // Log successful response
-            console.log(`Request ID ${requestId} completed successfully`);
+            log.info(`Request ID ${requestId} completed successfully`);
+            
+            // Record the success for circuit breaker if nodeId is provided
+            if (nodeId) {
+                recordSuccessfulRequest(nodeId);
+            }
             
             return response.data;
         } catch (error) {
             const axiosError = error as AxiosError;
             const isLastAttempt = attempt === retries;
             
-            console.error(`Attempt ${attempt + 1}/${retries + 1} failed for request ID ${requestId}: ${axiosError.message}`);
+            log.error(`Attempt ${attempt + 1}/${retries + 1} failed for request ID ${requestId}: ${axiosError.message}`);
+            
+            // Record failure for circuit breaker if this is the last attempt and nodeId is provided
+            if (isLastAttempt && nodeId) {
+                recordFailedRequest(nodeId);
+                log.warn(`Marked node ${nodeId} with a failure for circuit breaker`);
+            }
             
             if (isLastAttempt) {
                 // No more retries, return error response
-                console.error(`All retry attempts failed for request to ${targetUrl}`);
+                log.error(`All retry attempts failed for request to ${targetUrl}`);
                 return createErrorResponse(
                     isBatch ? (requestPayload as RpcRequest[]).map(r => r.id) : (requestPayload as RpcRequest).id,
                     determineErrorCode(axiosError),
@@ -169,7 +188,7 @@ async function executeWithRetry(
             
             // Wait before retrying
             await new Promise(resolve => setTimeout(resolve, retryDelay));
-            console.log(`Retrying request ID ${requestId} (attempt ${attempt + 2}/${retries + 1})`);
+            log.info(`Retrying request ID ${requestId} (attempt ${attempt + 2}/${retries + 1})`);
         }
     }
     
