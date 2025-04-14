@@ -1,8 +1,8 @@
 import { BaseNodeAdapter } from './baseNodeAdapter';
 
-export class GethNodeAdapter extends BaseNodeAdapter {
+export class NethermindNodeAdapter extends BaseNodeAdapter {
   getClientType(): string {
-    return 'geth';
+    return 'nethermind';
   }
   
   async getClientVersion(): Promise<string> {
@@ -13,11 +13,16 @@ export class GethNodeAdapter extends BaseNodeAdapter {
     return this.callRpc('admin_nodeInfo');
   }
   
-  async getPeers(): Promise<any[]> {
+  async getPeers(): Promise<any> {
     return this.callRpc('admin_peers');
   }
   
+  // Nethermind-specific debug methods
   async getTraceTransaction(txHash: string): Promise<any> {
     return this.callRpc('debug_traceTransaction', [txHash]);
+  }
+  
+  async getChainLevel(level: number): Promise<any> {
+    return this.callRpc('debug_getChainLevel', [level]);
   }
 }

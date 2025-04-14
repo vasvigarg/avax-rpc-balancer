@@ -1,8 +1,8 @@
 import { BaseNodeAdapter } from './baseNodeAdapter';
 
-export class GethNodeAdapter extends BaseNodeAdapter {
+export class ParityNodeAdapter extends BaseNodeAdapter {
   getClientType(): string {
-    return 'geth';
+    return 'parity';
   }
   
   async getClientVersion(): Promise<string> {
@@ -10,14 +10,14 @@ export class GethNodeAdapter extends BaseNodeAdapter {
   }
   
   async getNodeInfo(): Promise<any> {
-    return this.callRpc('admin_nodeInfo');
+    return this.callRpc('parity_nodeInfo');
   }
   
   async getPeers(): Promise<any[]> {
-    return this.callRpc('admin_peers');
+    return this.callRpc('parity_peers');
   }
   
   async getTraceTransaction(txHash: string): Promise<any> {
-    return this.callRpc('debug_traceTransaction', [txHash]);
+    return this.callRpc('trace_transaction', [txHash]);
   }
 }

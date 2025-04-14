@@ -3,7 +3,7 @@ import { nodes, NodeInfo, getNodesByNetwork } from '../config/nodeConfig';
 import { logger } from '../utils/logger';
 
 // Define NetworkType for type safety
-type NetworkType = 'avalanche-mainnet' | 'avalanche-fuji';
+export type NetworkType = 'avalanche-mainnet' | 'avalanche-fuji';
 
 const log = logger.withContext({ service: 'blockchain-network-manager' });
 
