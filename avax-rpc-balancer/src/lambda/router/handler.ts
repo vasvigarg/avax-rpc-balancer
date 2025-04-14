@@ -4,6 +4,9 @@ import { proxyRequest } from '../../services/rpcHandler';
 // Import config loader if needed:
 import 'dotenv/config'; // if using dotenv
 
+// Default network to use when not specified
+const DEFAULT_NETWORK = process.env.DEFAULT_NETWORK || 'avalanche-mainnet';
+
 // Error response helper function incorporating errorHandler.js logic
 const createErrorResponse = (
   statusCode: number, 
@@ -83,10 +86,14 @@ export const handleRpcRequest = async (
       return createErrorResponse(400, requestPayload.id || null, 'Invalid JSON-RPC 2.0 request', -32600);
     }
     
+    // Determine which network to use - could extract from headers, path parameters, or request data
+    // For now using a default value, but you might want to extract this from the event or request
+    const network = event.queryStringParameters?.network as "avalanche-mainnet" | "avalanche-fuji" || DEFAULT_NETWORK as "avalanche-mainnet" | "avalanche-fuji";
+    
     // Select target node for load balancing
     let targetNode;
     try {
-      targetNode = selectNode(); // Use default round-robin
+      targetNode = selectNode(network); // Pass required network parameter
     } catch (error) {
       return createErrorResponse(500, requestPayload.id || null, 'Internal server error during node selection', -32603, error as Error);
     }
