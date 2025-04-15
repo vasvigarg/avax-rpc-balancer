@@ -1,6 +1,8 @@
 import axios from 'axios';
 import { recordSuccessfulRequest, recordFailedRequest } from './loadBalancer';
 import { logger } from '../utils/logger';
+import { getCache } from './caching';
+import { isStateChangingMethod } from '../types/rpc';
 
 const log = logger.withContext({ service: 'rpc-handler' });
 
@@ -41,6 +43,7 @@ interface ProxyOptions {
     headers?: Record<string, string>;
     validateRequest?: boolean;
     nodeId?: string; // Added nodeId to track which node we're using
+    skipCache?: boolean; // NEW: Option to bypass cache
 }
 
 const DEFAULT_OPTIONS: ProxyOptions = {
@@ -52,6 +55,7 @@ const DEFAULT_OPTIONS: ProxyOptions = {
         'Content-Type': 'application/json',
         'User-Agent': 'AVAX-RPC-Balancer/1.0',
     },
+    skipCache: false, // NEW: Default is to use cache
 };
 
 /**
@@ -82,6 +86,27 @@ export async function proxyRequest(
     const opts = { ...DEFAULT_OPTIONS, ...options };
     const isBatch = Array.isArray(requestPayload);
     const nodeId = opts.nodeId;
+    
+    // Check cache before making a request (NEW CACHE LOGIC)
+    const cache = getCache();
+    
+    // Skip cache for write operations or if explicitly requested
+    const isReadOperation = isBatch 
+        ? requestPayload.every(req => !isStateChangingMethod(req.method))
+        : !isStateChangingMethod((requestPayload as RpcRequest).method);
+    
+    if (isReadOperation && !opts.skipCache) {
+        const cachedResponse = cache.get(requestPayload);
+        if (cachedResponse) {
+            // If we got a cache hit, return the cached data
+            if (isBatch) {
+                log.info(`Serving batch request with ${(requestPayload as RpcRequest[]).length} operations from cache`);
+            } else {
+                log.info(`Serving request ID ${(requestPayload as RpcRequest).id} (${(requestPayload as RpcRequest).method}) from cache`);
+            }
+            return cachedResponse;
+        }
+    }
     
     // Log the incoming request
     if (isBatch) {
@@ -117,7 +142,7 @@ export async function proxyRequest(
     };
     
     // Execute request with retries - modified to handle the Promise type issue
-    return executeWithRetry(
+    const response = await executeWithRetry(
         // Use a more generic Promise return type to avoid TypeScript issues
         async () => {
             const result = await axios.post(targetUrl, requestPayload, axiosConfig);
@@ -129,6 +154,19 @@ export async function proxyRequest(
         targetUrl,
         nodeId
     );
+    
+    // Store successful responses in cache (NEW CACHE LOGIC)
+    if (isReadOperation && !opts.skipCache) {
+        cache.set(requestPayload, response);
+    } else if (!isBatch) {
+        // Invalidate cache for state changing operations
+        const method = (requestPayload as RpcRequest).method;
+        if (isStateChangingMethod(method)) {
+            cache.invalidateOnStateChange(method);
+        }
+    }
+    
+    return response;
 }
 
 /**
