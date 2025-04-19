@@ -1,7 +1,6 @@
-import { APIGatewayProxyEvent, APIGatewayProxyResult, APIGatewayProxyHandler } from 'aws-lambda';
+import { APIGatewayProxyResult } from 'aws-lambda';
 import { handleRpcRequest as routeHandler } from './handler';
-import { nodes } from '../../config/nodeConfig';
-import { initHealthChecker, HealthCheckConfig } from '../../services/healthChecker';
+//import { HealthCheckConfig } from '../../services/healthChecker';
 import { logger } from '../../utils/logger';
 import { initializeCache } from '../../services/caching';
 import { APIGatewayProxyEventV2, APIGatewayProxyResultV2 } from 'aws-lambda';
@@ -41,8 +40,8 @@ export const routerHandler: (event: APIGatewayProxyEventV2) => Promise<APIGatewa
   routeHandler;
 
 const express = require('express');
-const morgan = require('morgan'); // for logging
-const config = require('./config');
+//const morgan = require('morgan'); // for logging
+//const config = require('./config');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
@@ -68,22 +67,21 @@ module.exports = app;
 const log = logger.withContext({ service: 'router' });
 
 // Health check configuration from environment variables
-const healthCheckConfig: Partial<HealthCheckConfig> = {
-  interval: Number(process.env.HEALTH_CHECK_INTERVAL || 10000),
-  timeout: Number(process.env.HEALTH_CHECK_TIMEOUT || 2000),
-  recoveryInterval: Number(process.env.HEALTH_RECOVERY_INTERVAL || 60000),
-  healthEndpoint: process.env.HEALTH_CHECK_ENDPOINT || '/',
-  failureThreshold: Number(process.env.HEALTH_FAILURE_THRESHOLD || 3),
-  successThreshold: Number(process.env.HEALTH_SUCCESS_THRESHOLD || 2),
-};
+//const healthCheckConfig: Partial<HealthCheckConfig> = {
+//interval: Number(process.env.HEALTH_CHECK_INTERVAL || 10000),
+//timeout: Number(process.env.HEALTH_CHECK_TIMEOUT || 2000),
+//recoveryInterval: Number(process.env.HEALTH_RECOVERY_INTERVAL || 60000),
+//healthEndpoint: process.env.HEALTH_CHECK_ENDPOINT || '/',
+//failureThreshold: Number(process.env.HEALTH_FAILURE_THRESHOLD || 3),
+//successThreshold: Number(process.env.HEALTH_SUCCESS_THRESHOLD || 2),
+//};
 
 // Initialize health checker on cold start
-const healthChecker = initHealthChecker(healthCheckConfig);
+//const healthChecker = initHealthChecker(healthCheckConfig);
 log.info('Health checker initialized and started');
 
-export const handleRpcRequest = async (
-  event: APIGatewayProxyEvent,
-): Promise<APIGatewayProxyResult> => {
+export const handleRpcRequest = async (): //event: APIGatewayProxyEvent,
+Promise<APIGatewayProxyResult> => {
   return {
     statusCode: 200,
     body: JSON.stringify({ message: 'Success' }),

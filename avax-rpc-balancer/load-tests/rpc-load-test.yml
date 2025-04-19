@@ -1,0 +1,23 @@
+config:
+  target: 'http://localhost:8547' # Your local or deployed balancer endpoint
+  phases:
+    - duration: 30
+      arrivalRate: 20 # 20 requests/sec
+      name: Warm-up
+    - duration: 60
+      arrivalRate: 100 # Stress test
+      name: Peak Load
+  defaults:
+    headers:
+      Content-Type: 'application/json'
+
+scenarios:
+  - name: JSON-RPC eth_blockNumber test
+    flow:
+      - post:
+          url: '/'
+          json:
+            jsonrpc: '2.0'
+            method: 'eth_blockNumber'
+            params: []
+            id: '{{ $uuid }}'
